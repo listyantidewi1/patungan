@@ -14,7 +14,8 @@ main {
   padding: 16px 16px 96px; /* ruang untuk tombol Hitung */
 }
 
-h1 { margin: 0 0 16px; font-size: 1.5rem; }
+h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.slogan { margin: 0 0 16px; font-size: 0.875rem; color: #555; }
 h2 { margin: 0 0 8px; font-size: 1.1rem; }
 
 section {

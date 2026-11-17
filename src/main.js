@@ -23,6 +23,7 @@ const rupiah = (n) => 'Rp' + n.toLocaleString('id-ID');
 document.querySelector('#app').innerHTML = `
   <main>
     <h1>Patungan</h1>
+    <p class="slogan">Bagi tagihan makan bareng, adil sampai rupiah terakhir.</p>
     <p id="pesan-simpanan" class="galat" role="status" hidden></p>
 
     <section>
@@ -314,3 +315,8 @@ document.querySelector('#form-hitung').addEventListener('submit', (e) => {
 
 tampil();
 tampilRiwayat();
+
+// PWA: daftarkan service worker hanya pada build produksi (bukan saat `vite dev`).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+}
