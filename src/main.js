@@ -1,8 +1,9 @@
 import './style.css';
+import { hitungPatungan } from './hitung.js';
 
 // Semua uang disimpan sebagai rupiah bulat (integer).
 const state = {
-  menu: [], // { nama, harga }
+  menu: [], // { nama, harga, pemakan: [nama orang] }
   orang: [], // nama
 };
 
@@ -30,11 +31,29 @@ document.querySelector('#app').innerHTML = `
         <button type="submit">Tambah orang</button>
       </form>
     </section>
+
+    <section>
+      <h2>Voucher, service, pajak</h2>
+      <form id="form-hitung">
+        <label>Voucher (Rp)
+          <input name="voucher" type="number" inputmode="numeric" min="0" step="1" value="0" />
+        </label>
+        <label>Service (%)
+          <input name="service" type="number" inputmode="decimal" min="0" step="any" value="0" />
+        </label>
+        <label>Pajak (%)
+          <input name="pajak" type="number" inputmode="decimal" min="0" step="any" value="0" />
+        </label>
+        <button type="submit">Hitung</button>
+      </form>
+      <div id="hasil" aria-live="polite"></div>
+    </section>
   </main>
 `;
 
 const ulMenu = document.querySelector('#daftar-menu');
 const ulOrang = document.querySelector('#daftar-orang');
+const divHasil = document.querySelector('#hasil');
 
 function tampil() {
   ulMenu.replaceChildren(
@@ -44,7 +63,28 @@ function tampil() {
       nama.textContent = m.nama;
       const harga = document.createElement('span');
       harga.textContent = rupiah(m.harga);
-      li.append(nama, harga);
+      const baris = document.createElement('div');
+      baris.className = 'baris';
+      baris.append(nama, harga);
+
+      // Ketuk nama orang untuk menandai/melepas pemakan menu ini.
+      const pilihan = document.createElement('div');
+      pilihan.className = 'pilihan';
+      for (const orang of state.orang) {
+        const tombol = document.createElement('button');
+        tombol.type = 'button';
+        tombol.className = 'chip';
+        tombol.textContent = orang;
+        tombol.setAttribute('aria-pressed', String(m.pemakan.includes(orang)));
+        tombol.addEventListener('click', () => {
+          const i = m.pemakan.indexOf(orang);
+          if (i >= 0) m.pemakan.splice(i, 1);
+          else m.pemakan.push(orang);
+          tampil();
+        });
+        pilihan.append(tombol);
+      }
+      li.append(baris, pilihan);
       return li;
     }),
   );
@@ -55,6 +95,15 @@ function tampil() {
       return li;
     }),
   );
+  // Hasil lama tidak berlaku lagi kalau data berubah.
+  divHasil.replaceChildren();
+}
+
+function tampilkanPesan(teks, kelas) {
+  const p = document.createElement('p');
+  p.className = kelas;
+  p.textContent = teks;
+  divHasil.replaceChildren(p);
 }
 
 document.querySelector('#form-menu').addEventListener('submit', (e) => {
@@ -63,7 +112,7 @@ document.querySelector('#form-menu').addEventListener('submit', (e) => {
   const nama = f.nama.value.trim();
   const harga = Math.round(Number(f.harga.value));
   if (!nama || !Number.isFinite(harga) || harga < 0) return;
-  state.menu.push({ nama, harga });
+  state.menu.push({ nama, harga, pemakan: [] });
   f.reset();
   f.nama.focus();
   tampil();
@@ -78,6 +127,34 @@ document.querySelector('#form-orang').addEventListener('submit', (e) => {
   f.reset();
   f.nama.focus();
   tampil();
+});
+
+document.querySelector('#form-hitung').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = e.target;
+  try {
+    const hasil = hitungPatungan({
+      voucher: Math.round(Number(f.voucher.value) || 0),
+      service: Number(f.service.value) || 0,
+      pajak: Number(f.pajak.value) || 0,
+      menu: state.menu,
+    });
+    const ul = document.createElement('ul');
+    for (const [orang, bagian] of Object.entries(hasil.bagian)) {
+      const li = document.createElement('li');
+      const nama = document.createElement('span');
+      nama.textContent = orang;
+      const jumlah = document.createElement('span');
+      jumlah.textContent = rupiah(bagian);
+      li.append(nama, jumlah);
+      ul.append(li);
+    }
+    const ringkas = document.createElement('p');
+    ringkas.textContent = `Total struk ${rupiah(hasil.total)}. Kelebihan ${rupiah(hasil.kelebihan)}.`;
+    divHasil.replaceChildren(ul, ringkas);
+  } catch (err) {
+    tampilkanPesan(err.message, 'galat');
+  }
 });
 
 tampil();

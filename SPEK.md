@@ -32,6 +32,8 @@ di kafe yang sinyalnya mungkin jelek.
 4. Voucher, service, dan pajak dibagi sebanding dengan porsi pesanan setiap orang.
 5. Semua uang dalam rupiah bulat. Bagian setiap orang dibulatkan KE ATAS
    ke kelipatan Rp100, supaya yang menalangi tidak rugi. Kelebihannya ditampilkan.
+6. Kalau ada menu yang belum dipilih pemakannya, jangan menghitung.
+   Tampilkan pesan: "Ada menu yang belum dipilih pemakannya".
 
 ## 6. Contoh yang dihitung manual
 Andi menalangi. Service 5%, pajak 10%, voucher Rp15.000.

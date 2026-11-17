@@ -51,3 +51,19 @@ button {
   color: #fff;
   font-weight: 600;
 }
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+
+li:has(.pilihan) { flex-direction: column; }
+.baris { display: flex; justify-content: space-between; gap: 8px; }
+.pilihan { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  background: #fff;
+  color: #0a7d4f;
+  border: 1px solid #0a7d4f;
+  font-weight: 400;
+}
+.chip[aria-pressed='true'] { background: #0a7d4f; color: #fff; font-weight: 600; }
+
+.galat { color: #b00020; font-weight: 600; }
