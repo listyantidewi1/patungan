@@ -59,6 +59,38 @@ describe('hitungPatungan', () => {
     });
   });
 
+  it('membatasi voucher paling besar sama dengan subtotal (voucher 999999)', () => {
+    const hasil = hitungPatungan({
+      voucher: 999999,
+      service: 5,
+      pajak: 10,
+      menu: [
+        { nama: 'Nasi goreng spesial', harga: 32000, pemakan: ['Andi'] },
+        { nama: 'Mie ayam bakso', harga: 28000, pemakan: ['Bela'] },
+        { nama: 'Kentang goreng', harga: 30000, pemakan: ['Andi', 'Bela', 'Citra'] },
+      ],
+    });
+
+    expect(hasil.total).toBe(0);
+    expect(hasil.bagian).toEqual({ Andi: 0, Bela: 0, Citra: 0 });
+    expect(hasil.kelebihan).toBe(0);
+  });
+
+  it('menghasilkan bagian 0 jika subtotal 0 (semua menu Rp0)', () => {
+    const hasil = hitungPatungan({
+      service: 5,
+      pajak: 10,
+      menu: [
+        { nama: 'Air putih', harga: 0, pemakan: ['Andi', 'Bela'] },
+        { nama: 'Kerupuk', harga: 0, pemakan: ['Andi'] },
+      ],
+    });
+
+    expect(hasil.total).toBe(0);
+    expect(hasil.bagian).toEqual({ Andi: 0, Bela: 0 });
+    expect(hasil.kelebihan).toBe(0);
+  });
+
   it('melempar error jika ada menu tanpa pemakan', () => {
     const struk = {
       menu: [

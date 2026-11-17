@@ -19,7 +19,7 @@ function bacaJson(storage, kunci) {
 const adalahObjek = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const rupiahValid = (n) => Number.isSafeInteger(n) && n >= 0;
 
-export function entriRiwayatValid(r) {
+function entriRiwayatValid(r) {
   return (
     adalahObjek(r) &&
     typeof r.tanggal === 'string' &&

@@ -29,7 +29,8 @@ export function hitungPatungan(struk) {
   }
 
   const subtotal = menu.reduce((jumlah, m) => jumlah + m.harga, 0);
-  const setelahVoucher = subtotal - voucher;
+  // Voucher paling besar sama dengan subtotal, jadi total tidak pernah minus.
+  const setelahVoucher = subtotal - Math.min(voucher, subtotal);
   const biayaService = Math.round((setelahVoucher * service) / 100);
   const biayaPajak = Math.round(((setelahVoucher + biayaService) * pajak) / 100);
   const total = setelahVoucher + biayaService + biayaPajak;
@@ -50,7 +51,9 @@ export function hitungPatungan(struk) {
   const bagian = {};
   let jumlahDibayar = 0;
   for (const [orang, p] of Object.entries(porsi)) {
-    const kelipatan = bagiKeAtas(p * total, subtotal * skala * KELIPATAN);
+    // Subtotal 0 berarti tidak ada yang dibayar; hindari pembagian dengan nol.
+    const kelipatan =
+      subtotal === 0 ? 0 : bagiKeAtas(p * total, subtotal * skala * KELIPATAN);
     bagian[orang] = kelipatan * KELIPATAN;
     jumlahDibayar += bagian[orang];
   }
