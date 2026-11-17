@@ -1,5 +1,6 @@
 import './style.css';
 import { hitungPatungan } from './hitung.js';
+import { KUNCI_DRAFT, KUNCI_RIWAYAT, muatDraf, muatRiwayat, tulis } from './penyimpanan.js';
 
 // Semua uang disimpan sebagai rupiah bulat (integer).
 const state = {
@@ -7,11 +8,21 @@ const state = {
   orang: [], // nama
 };
 
+// Mengakses localStorage sendiri bisa melempar galat kalau diblokir.
+const simpanan = (() => {
+  try {
+    return window.localStorage;
+  } catch {
+    return { getItem: () => null, setItem: () => {} };
+  }
+})();
+
 const rupiah = (n) => 'Rp' + n.toLocaleString('id-ID');
 
 document.querySelector('#app').innerHTML = `
   <main>
     <h1>Patungan</h1>
+    <p id="pesan-simpanan" class="galat" role="status" hidden></p>
 
     <section>
       <h2>Menu</h2>
@@ -35,6 +46,9 @@ document.querySelector('#app').innerHTML = `
     <section>
       <h2>Voucher, service, pajak</h2>
       <form id="form-hitung">
+        <label>Nama tempat
+          <input name="tempat" placeholder="Mis. Warung Bu Tini" autocomplete="off" />
+        </label>
         <label>Voucher (Rp)
           <input name="voucher" type="number" inputmode="numeric" min="0" step="1" value="0" />
         </label>
@@ -47,6 +61,11 @@ document.querySelector('#app').innerHTML = `
       </form>
       <div id="hasil" aria-live="polite"></div>
     </section>
+
+    <section>
+      <h2>Riwayat</h2>
+      <ul id="daftar-riwayat"></ul>
+    </section>
   </main>
   <div class="bar-bawah">
     <button type="submit" form="form-hitung" class="utama">Hitung</button>
@@ -56,6 +75,64 @@ document.querySelector('#app').innerHTML = `
 const ulMenu = document.querySelector('#daftar-menu');
 const ulOrang = document.querySelector('#daftar-orang');
 const divHasil = document.querySelector('#hasil');
+const ulRiwayat = document.querySelector('#daftar-riwayat');
+const formHitung = document.querySelector('#form-hitung');
+
+// Muat struk yang sedang diisi dari sesi sebelumnya. Data rusak dilewati.
+const draf = muatDraf(simpanan);
+state.orang = draf.orang;
+state.menu = draf.menu;
+for (const k of ['tempat', 'voucher', 'service', 'pajak']) {
+  if (draf[k] !== undefined) formHitung[k].value = draf[k];
+}
+
+const dimuat = muatRiwayat(simpanan);
+let riwayat = dimuat.entri;
+const rusak = dimuat.dilewati + draf.dilewati;
+if (rusak > 0) {
+  const pesan = document.querySelector('#pesan-simpanan');
+  pesan.textContent = `${rusak} data tersimpan rusak dan dilewati.`;
+  pesan.hidden = false;
+}
+let sudahDisimpan = false; // cegah riwayat ganda kalau Hitung ditekan berulang
+
+function simpanDraf() {
+  tulis(simpanan, KUNCI_DRAFT, {
+    menu: state.menu,
+    orang: state.orang,
+    tempat: formHitung.tempat.value,
+    voucher: formHitung.voucher.value,
+    service: formHitung.service.value,
+    pajak: formHitung.pajak.value,
+  });
+}
+
+function tampilRiwayat() {
+  ulRiwayat.replaceChildren(
+    ...riwayat
+      .slice()
+      .reverse()
+      .map((r) => {
+        const li = document.createElement('li');
+        const kiri = document.createElement('span');
+        const tanggal = new Date(r.tanggal).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+        kiri.textContent = `${r.tempat || 'Tanpa nama'} · ${tanggal}`;
+        const kanan = document.createElement('span');
+        kanan.textContent = rupiah(r.total);
+        li.append(kiri, kanan);
+        return li;
+      }),
+  );
+  if (riwayat.length === 0) {
+    const kosong = document.createElement('li');
+    kosong.textContent = 'Belum ada riwayat';
+    ulRiwayat.append(kosong);
+  }
+}
 
 function tampil() {
   ulMenu.replaceChildren(
@@ -99,7 +176,14 @@ function tampil() {
   );
   // Hasil lama tidak berlaku lagi kalau data berubah.
   divHasil.replaceChildren();
+  sudahDisimpan = false;
+  simpanDraf();
 }
+
+formHitung.addEventListener('input', () => {
+  sudahDisimpan = false;
+  simpanDraf();
+});
 
 function tampilkanPesan(teks, kelas) {
   const p = document.createElement('p');
@@ -160,6 +244,19 @@ document.querySelector('#form-hitung').addEventListener('submit', (e) => {
     const ringkas = document.createElement('p');
     ringkas.textContent = `Total struk ${rupiah(hasil.total)}. Kelebihan ${rupiah(hasil.kelebihan)}.`;
     divHasil.replaceChildren(ul, ringkas);
+
+    if (!sudahDisimpan) {
+      riwayat.push({
+        tanggal: new Date().toISOString(),
+        tempat: f.tempat.value.trim(),
+        total: hasil.total,
+        kelebihan: hasil.kelebihan,
+        bagian: hasil.bagian,
+      });
+      tulis(simpanan, KUNCI_RIWAYAT, riwayat);
+      sudahDisimpan = true;
+      tampilRiwayat();
+    }
   } catch (err) {
     tampilkanPesan(err.message, 'galat');
   }
@@ -168,3 +265,4 @@ document.querySelector('#form-hitung').addEventListener('submit', (e) => {
 });
 
 tampil();
+tampilRiwayat();
