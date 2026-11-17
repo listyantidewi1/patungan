@@ -1,6 +1,7 @@
 import './style.css';
 import { hitungPatungan } from './hitung.js';
 import { KUNCI_DRAFT, KUNCI_RIWAYAT, muatDraf, muatRiwayat, tulis } from './penyimpanan.js';
+import { buatTeksRingkasan } from './ringkasan.js';
 
 // Semua uang disimpan sebagai rupiah bulat (integer).
 const state = {
@@ -48,6 +49,9 @@ document.querySelector('#app').innerHTML = `
       <form id="form-hitung">
         <label>Nama tempat
           <input name="tempat" placeholder="Mis. Warung Bu Tini" autocomplete="off" />
+        </label>
+        <label>Ditalangi oleh
+          <select name="penalang"></select>
         </label>
         <label>Voucher (Rp)
           <input name="voucher" type="number" inputmode="numeric" min="0" step="1" value="0" />
@@ -174,6 +178,14 @@ function tampil() {
       return li;
     }),
   );
+  // Pilihan penalang mengikuti daftar orang; pilihan lama dipertahankan kalau masih ada.
+  const pilihanPenalang = formHitung.penalang;
+  const terpilih = pilihanPenalang.value;
+  pilihanPenalang.replaceChildren(
+    new Option('Pilih orang', ''),
+    ...state.orang.map((n) => new Option(n, n)),
+  );
+  pilihanPenalang.value = state.orang.includes(terpilih) ? terpilih : '';
   // Hasil lama tidak berlaku lagi kalau data berubah.
   divHasil.replaceChildren();
   sudahDisimpan = false;
@@ -190,6 +202,34 @@ function tampilkanPesan(teks, kelas) {
   p.className = kelas;
   p.textContent = teks;
   divHasil.replaceChildren(p);
+}
+
+// Pesan di bawah hasil, tanpa menghapus hasil yang sedang tampil.
+function pesanBagikan(teks) {
+  divHasil.querySelector('.pesan-bagikan')?.remove();
+  const p = document.createElement('p');
+  p.className = 'galat pesan-bagikan';
+  p.textContent = teks;
+  divHasil.append(p);
+}
+
+// Web Share API kalau ada; kalau tidak, buka WhatsApp dengan teksnya.
+async function bagikanRingkasan(data) {
+  if (!data.penalang) {
+    pesanBagikan('Pilih dulu siapa yang menalangi');
+    return;
+  }
+  const text = buatTeksRingkasan(data);
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+    } catch (err) {
+      // Pengguna menutup lembar bagikan: bukan galat.
+      if (err.name !== 'AbortError') pesanBagikan('Gagal membagikan ringkasan');
+    }
+    return;
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 }
 
 // Kotak harga: tampilkan titik ribuan saat mengetik (50300 -> 50.300).
@@ -243,7 +283,15 @@ document.querySelector('#form-hitung').addEventListener('submit', (e) => {
     }
     const ringkas = document.createElement('p');
     ringkas.textContent = `Total struk ${rupiah(hasil.total)}. Kelebihan ${rupiah(hasil.kelebihan)}.`;
-    divHasil.replaceChildren(ul, ringkas);
+    const bagikan = document.createElement('button');
+    bagikan.type = 'button';
+    bagikan.textContent = 'Bagikan';
+    const tempat = f.tempat.value.trim();
+    const tanggal = new Date();
+    bagikan.addEventListener('click', () =>
+      bagikanRingkasan({ tempat, tanggal, ...hasil, penalang: f.penalang.value }),
+    );
+    divHasil.replaceChildren(ul, ringkas, bagikan);
 
     if (!sudahDisimpan) {
       riwayat.push({

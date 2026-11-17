@@ -36,7 +36,7 @@ li {
 
 form { display: flex; flex-direction: column; gap: 8px; }
 
-input, button {
+input, select, button {
   font: inherit;
   min-height: 48px;
   min-width: 48px;
@@ -44,7 +44,7 @@ input, button {
   border-radius: 6px;
 }
 
-input { border: 1px solid #bbb; }
+input, select { border: 1px solid #bbb; }
 
 button {
   border: 0;
