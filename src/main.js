@@ -18,7 +18,7 @@ document.querySelector('#app').innerHTML = `
       <ul id="daftar-menu"></ul>
       <form id="form-menu">
         <input name="nama" placeholder="Nama menu" required autocomplete="off" />
-        <input name="harga" type="number" inputmode="numeric" min="0" step="1" placeholder="Harga (Rp)" required />
+        <input name="harga" type="text" inputmode="numeric" pattern="[0-9.]*" placeholder="Harga (Rp)" required autocomplete="off" />
         <button type="submit">Tambah menu</button>
       </form>
     </section>
@@ -44,11 +44,13 @@ document.querySelector('#app').innerHTML = `
         <label>Pajak (%)
           <input name="pajak" type="number" inputmode="decimal" min="0" step="any" value="0" />
         </label>
-        <button type="submit">Hitung</button>
       </form>
       <div id="hasil" aria-live="polite"></div>
     </section>
   </main>
+  <div class="bar-bawah">
+    <button type="submit" form="form-hitung" class="utama">Hitung</button>
+  </div>
 `;
 
 const ulMenu = document.querySelector('#daftar-menu');
@@ -106,11 +108,17 @@ function tampilkanPesan(teks, kelas) {
   divHasil.replaceChildren(p);
 }
 
+// Kotak harga: tampilkan titik ribuan saat mengetik (50300 -> 50.300).
+document.querySelector('#form-menu').harga.addEventListener('input', (e) => {
+  const angka = e.target.value.replace(/\D/g, '');
+  e.target.value = angka ? Number(angka).toLocaleString('id-ID') : '';
+});
+
 document.querySelector('#form-menu').addEventListener('submit', (e) => {
   e.preventDefault();
   const f = e.target;
   const nama = f.nama.value.trim();
-  const harga = Math.round(Number(f.harga.value));
+  const harga = Number(f.harga.value.replace(/\D/g, ''));
   if (!nama || !Number.isFinite(harga) || harga < 0) return;
   state.menu.push({ nama, harga, pemakan: [] });
   f.reset();
@@ -155,6 +163,8 @@ document.querySelector('#form-hitung').addEventListener('submit', (e) => {
   } catch (err) {
     tampilkanPesan(err.message, 'galat');
   }
+  // Gulirkan ke hasil (atau pesan galat) supaya pengguna tahu tombol bekerja.
+  divHasil.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 tampil();
